@@ -10,23 +10,26 @@ my $mirbase = "hairpin.fa";
 my $rfam = "RF00027.fa";
 my $mirgenedb = "ALL.gff";
 
-$existMirbase = existsFile($mirbase); 
-$existsRfam = existsFile($rfam); 
-$existsMirgenedb = existsFile($mirgenedb);
+my $existMirbase = existsFile($mirbase); 
+my $existsRfam = existsFile($rfam); 
+my $existsMirgenedb = existsFile($mirgenedb);
 
 if ($existMirbase == 1){
-	convert_all_data($existMirbase, "mirbase");
+	convert_all_data($mirbase, "mirbase");
 }
 
 if ($existsRfam == 1){
-	convert_all_data($existsRfam, "rfam");
+	convert_all_data($rfam, "rfam");
 }
 
 if ($existsMirgenedb == 1){
-	convert_all_data($existsMirgenedb, "mirgenedb");
+	convert_all_data($mirgenedb, "mirgenedb");
 }
 
 print Dumper \%complete_data;
+
+generate_table(\%complete_data);
+count_data(\%complete_data);
 
 #####Subs
 sub existsFile {
@@ -44,7 +47,7 @@ sub convert_all_data {
 	my ($in, $mode) = @_;
 	if ($mode eq "mirbase"){
 		open my $IN, "< $in" or die "Please provide input file\n";
-		while($IN){
+		while(<$IN>){
 		chomp;
 		if ($_ =~ /^\>/){
 			#>cel-lin-4 MI0000002 Caenorhabditis elegans lin-4 stem-loop
@@ -56,19 +59,27 @@ sub convert_all_data {
 			push @{$complete_data{$acc}{"Specie"}}, $specie;
 			push @{$complete_data{$acc}{"Name"}}, $nameFamily;
 			push @{$complete_data{$acc}{"Database"}}, $database;		
+			} else {
+				next;
 			}
 		}
 	} elsif ($mode eq "rfam"){
 		open my $IN, "< $in" or die "Please provide input file\n";
 		my $rnacentral = load_external_databases();
-		while($IN){
+		while(<$IN>){
 		chomp;
 		if ($_ =~ /^\>/){
 			#>CM000866.1/19874310-19874235 Callithrix jacchus chromosome 11, whole genome shotgun sequence
 			my @split = split /\s+|\t/, $_;
-			my $specie = "$split[1]_$split[2]";
+			my $num = scalar @split;
+			my $specie;
+			if ($num > 3){
+				$specie = "$split[1]_$split[2]";
+			} else {
+				$specie = "NA";
+			}
 			my $nameFamily = $in;
-			$nameFamily =~ s/(\/.*\/|\.\.\/)(.*)(\.fa|\.fasta)/$2/g;
+			$nameFamily =~ s/(\/.*\/|\.\.\/|)(.*)(\.fa|\.fasta)/$2/g;
 			my $database = "RFAM";
 			my $id = $split[0];
 			$id =~ s/(\>)(.*)/$2/g;
@@ -78,15 +89,15 @@ sub convert_all_data {
 				} else {
 					$acc = $nameFamily;
 				}
-			}
 			push @{$complete_data{$acc}{"Specie"}}, $specie;
 			push @{$complete_data{$acc}{"Name"}}, $nameFamily;
 			push @{$complete_data{$acc}{"Database"}}, $database;	
+			}
 		}
 	} elsif ($mode eq "mirgenedb"){
 		open my $IN, "< $in" or die "Please provide input file\n";
 		my $tagsDB = load_species_names_mirgenedb();
-		while($IN){
+		while(<$IN>){
 		chomp;
 		next if $_ =~ /^\#|^$/;
 		my $type = (split /\s+|\t/, $_)[2];
@@ -111,7 +122,7 @@ sub convert_all_data {
 			} else {
 				die "There is something wrong in the database assigment\n";
 			}
-			push @{$complete_data{$acc}{"Specie"}}, $specie
+			push @{$complete_data{$acc}{"Specie"}}, $specie;
 			push @{$complete_data{$acc}{"Name"}}, $nameFamily;
 			push @{$complete_data{$acc}{"Database"}}, $database;  	
 			}		
@@ -132,7 +143,7 @@ sub load_external_databases {
 		my $mirbaseID = (split /\s+|\t/, $_)[-1];
 		my $start = (split /\s+|\t/, $_)[1];
 		my $end = (split /\s+|\t/, $_)[2];
-		$relation{"$id\/$start-$end"} = $relation;
+		$relation{"$id\/$start-$end"} = $mirbaseID;
 	}
 	return \%relation;
 }
@@ -142,10 +153,88 @@ sub load_species_names_mirgenedb {
 	my %db;
 	while (<$DB>){
 		chomp;
-		$_ =~ s/^(.*)(\()(.*)(\))(.*)\s+$/$3 $5/g;
-		$db{$5} = $3;
+		$_ =~ s/^(.*)(\()(.*)(\))(.*)\s*$/$3 $5/g;
+		my $tag = $5;
+		my $name =  $3;
+		$tag =~ s/\s+//g;
+		$name =~ s/\s+/\_/g;
+		$db{$tag} = $name;
 	}
 	return \%db;
 }
+
+sub generate_table {
+	my $data = shift; #Hash of hash of arrays
+	foreach my $acc (sort keys %{ $data }) {
+		my $database_complete = $$data{$acc}{"Databases"};
+		my $species_complete = $$data{$acc}{"Specie"};
+		my $names_complete = $$data{$acc}{"Name"};
+		#Obtain index, based on database key:		
+		my ($index_mirbase, $index_rfam, $index_mirgenedb); #Obtain the order of the databases in the data structure.
+		$index_mirbase = grep { $$database_complete[$_] eq 'miRBase' } (0 .. $$database_complete-1);
+		$index_rfam = grep { $$database_complete[$_] eq 'RFAM' } (0 .. $$database_complete-1);
+		$index_mirgenedb = grep { $$database_complete[$_] eq 'mirgenedb' } (0 .. $$database_complete-1);
+		##	
+		#Database
+		$database_complete[$index_mirbase] = test_if_defined($database_complete[$index_mirbase]);
+		$database_complete[$index_rfam] = test_if_defined($database_complete[$index_rfam]);
+		$database_complete[$index_mirgenedb] = test_if_defined($database_complete[$index_mirgenedb]);
+		#Species
+		$species_complete[$index_mirbase] = test_if_defined($species_complete[$index_mirbase]);
+		$species_complete[$index_rfam] = test_if_defined($species_complete[$index_rfam]);
+		$species_complete[$index_mirgenedb] = test_if_defined($species_complete[$index_mirgenedb]);
+		#Names
+		$names_complete[$index_mirbase] = test_if_defined($names_complete[$index_mirbase]);
+		$names_complete[$index_rfam] = test_if_defined($names_complete[$index_rfam]);
+		$names_complete[$index_mirgenedb] = test_if_defined($names_complete[$index_mirgenedb]);
+		##
+	}	
+	return;	
+}
+
+sub test_if_defined {
+	my $variable = shift;
+	my $return;
+	if (length $variable > 0 && $variable){
+		$return = $variable;
+	} else {
+		$return = "NA";
+	}
+	return $return;
+}
+
+sub count_data {
+	my $data = shift;
+	my $c_rfam = 0;
+	my $c_mirbase = 0;
+	my $c_mirgenedb = 0;
+	my $complete_families = 0;
+	
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 exit;
