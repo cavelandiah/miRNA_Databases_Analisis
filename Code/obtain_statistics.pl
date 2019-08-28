@@ -26,7 +26,7 @@ if ($existsMirgenedb == 1){
 	convert_all_data($mirgenedb, "mirgenedb");
 }
 
-print Dumper \%complete_data;
+#print Dumper \%complete_data;
 
 generate_table(\%complete_data);
 count_data(\%complete_data);
@@ -166,41 +166,56 @@ sub load_species_names_mirgenedb {
 sub generate_table {
 	my $data = shift; #Hash of hash of arrays
 	foreach my $acc (sort keys %{ $data }) {
-		my $database_complete = $$data{$acc}{"Databases"};
+		my $database_complete = $$data{$acc}{"Database"};
 		my $species_complete = $$data{$acc}{"Specie"};
 		my $names_complete = $$data{$acc}{"Name"};
 		#Obtain index, based on database key:		
 		my ($index_mirbase, $index_rfam, $index_mirgenedb); #Obtain the order of the databases in the data structure.
-		$index_mirbase = grep { $$database_complete[$_] eq 'miRBase' } (0 .. $$database_complete-1);
-		$index_rfam = grep { $$database_complete[$_] eq 'RFAM' } (0 .. $$database_complete-1);
-		$index_mirgenedb = grep { $$database_complete[$_] eq 'mirgenedb' } (0 .. $$database_complete-1);
-		##	
+		$index_mirbase = get_index_array_match($database_complete, "miRBase");
+		$index_rfam = get_index_array_match($database_complete, "RFAM");
+		$index_mirgenedb = get_index_array_match($database_complete, "mirgenedb");
 		#Database
-		$database_complete[$index_mirbase] = test_if_defined($database_complete[$index_mirbase]);
-		$database_complete[$index_rfam] = test_if_defined($database_complete[$index_rfam]);
-		$database_complete[$index_mirgenedb] = test_if_defined($database_complete[$index_mirgenedb]);
+		$database_complete = test_if_defined($database_complete, $index_mirbase);
+		$database_complete = test_if_defined($database_complete, $index_rfam);
+		$database_complete = test_if_defined($database_complete, $index_mirgenedb);
 		#Species
-		$species_complete[$index_mirbase] = test_if_defined($species_complete[$index_mirbase]);
-		$species_complete[$index_rfam] = test_if_defined($species_complete[$index_rfam]);
-		$species_complete[$index_mirgenedb] = test_if_defined($species_complete[$index_mirgenedb]);
+		$species_complete = test_if_defined($species_complete, $index_mirbase);
+		$species_complete = test_if_defined($species_complete, $index_rfam);
+		$species_complete = test_if_defined($species_complete, $index_mirgenedb);
 		#Names
-		$names_complete[$index_mirbase] = test_if_defined($names_complete[$index_mirbase]);
-		$names_complete[$index_rfam] = test_if_defined($names_complete[$index_rfam]);
-		$names_complete[$index_mirgenedb] = test_if_defined($names_complete[$index_mirgenedb]);
+		$names_complete = test_if_defined($names_complete,$index_mirbase);
+		$names_complete = test_if_defined($names_complete,$index_rfam);
+		$names_complete = test_if_defined($names_complete,$index_mirgenedb);
 		##
+		#Print here the updated table	
 	}	
 	return;	
 }
 
-sub test_if_defined {
-	my $variable = shift;
-	my $return;
-	if (length $variable > 0 && $variable){
-		$return = $variable;
-	} else {
-		$return = "NA";
+sub get_index_array_match {
+	my ($array, $pattern) = @_;
+	my $index = "NA";
+	my $length_database = (scalar @{$array} - 1);
+	for (my $i = 0; $i <= $length_database; $i++ ){
+		if ( $$array[$i] eq $pattern ){
+			$index = $i;
+			last;
+		} else {
+			;
+		}
 	}
-	return $return;
+	return $index;
+}
+
+
+sub test_if_defined {
+	my ($array, $index) = @_;
+	if ($index eq "NA"){
+		push @{$array}, "NA";
+	} else {
+		;
+	}
+	return $array;
 }
 
 sub count_data {
@@ -209,7 +224,7 @@ sub count_data {
 	my $c_mirbase = 0;
 	my $c_mirgenedb = 0;
 	my $complete_families = 0;
-	
+	return;	
 }
 
 
