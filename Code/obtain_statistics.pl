@@ -7,20 +7,29 @@ use Data::Dumper;
 my %complete_data;
 
 my $mirbase = "hairpin.fa";
-my $rfam = "RF00027.fa";
+my $dir_rfam = "Fasta_RFAM"; #Here is the Directory
 my $mirgenedb = "ALL.gff";
 
 my $existMirbase = existsFile($mirbase); 
-my $existsRfam = existsFile($rfam); 
 my $existsMirgenedb = existsFile($mirgenedb);
+my $DIR;
+#Here open and process RFAM files
+opendir($DIR, $dir_rfam) or die "The RFAM path is not available\n";
+my @rfam_files = readdir($DIR);
+close $DIR;
+
+foreach my $rfam (@rfam_files){
+	next if ($rfam =~ /^\.$|^\.\.$/);
+	my $existsRfam = existsFile("$dir_rfam/$rfam");
+	if ($existsRfam == 1){
+		convert_all_data("$dir_rfam/$rfam", "rfam");
+	}
+}
 
 if ($existMirbase == 1){
 	convert_all_data($mirbase, "mirbase");
 }
 
-if ($existsRfam == 1){
-	convert_all_data($rfam, "rfam");
-}
 
 if ($existsMirgenedb == 1){
 	convert_all_data($mirgenedb, "mirgenedb");
@@ -79,16 +88,16 @@ sub convert_all_data {
 				$specie = "NA";
 			}
 			my $nameFamily = $in;
-			$nameFamily =~ s/(\/.*\/|\.\.\/|)(.*)(\.fa|\.fasta)/$2/g;
+			$nameFamily =~ s/(\/.*\/|\.\.\/|.*\/)(.*)(\.fa|\.fasta)/$2/g;
 			my $database = "RFAM";
 			my $id = $split[0];
 			$id =~ s/(\>)(.*)/$2/g;
 			my $acc;
-				if (exists $$rnacentral{$id}){
-					$acc = $$rnacentral{$id};	
-				} else {
-					$acc = $nameFamily;
-				}
+			if (exists $$rnacentral{$id}){
+				$acc = $$rnacentral{$id};	
+			} else {
+				$acc = $nameFamily;
+			}
 			push @{$complete_data{$acc}{"Specie"}}, $specie;
 			push @{$complete_data{$acc}{"Name"}}, $nameFamily;
 			push @{$complete_data{$acc}{"Database"}}, $database;	
@@ -166,6 +175,7 @@ sub load_species_names_mirgenedb {
 sub generate_table {
 	my $data = shift; #Hash of hash of arrays
 	foreach my $acc (sort keys %{ $data }) {
+		my $all_information = $$data{$acc};
 		my $database_complete = $$data{$acc}{"Database"};
 		my $species_complete = $$data{$acc}{"Specie"};
 		my $names_complete = $$data{$acc}{"Name"};
@@ -187,9 +197,76 @@ sub generate_table {
 		$names_complete = test_if_defined($names_complete,$index_rfam);
 		$names_complete = test_if_defined($names_complete,$index_mirgenedb);
 		##
-		#Print here the updated table	
+		print_line_table($all_information, $acc);
 	}	
 	return;	
+}
+
+sub print_line_table {
+	my ($complete, $acc) = @_;
+	#Create spaces
+	# mirbase, RFAM, mirgenedb
+	my @databasesOrder = ("NA,") x 3;
+	my @namesOrder = ("NA,") x 3;
+	my @speciesOrder = ("NA,") x 3;
+	#
+	my ($databases, $names, $species);
+	my ($index_mirbase, $index_rfam, $index_mirgenedb);
+	for (my $i=0; $i <= 2; $i++){
+		#Databases
+		if ($$complete{"Database"}[$i]){
+			if ($$complete{"Database"}[$i] eq "miRBase"){
+				$index_mirbase = $i;		
+				$databasesOrder[0] .= "$$complete{Database}[$i],";
+				$namesOrder[0] .= "$$complete{Name}[$i],";
+				$speciesOrder[0] .= "$$complete{Specie}[$i],";
+			} elsif ("$$complete{Database}[$i]" eq "RFAM"){
+				$index_rfam = $i;
+				$databasesOrder[1] .= "$$complete{Database}[$i],";
+				$namesOrder[1] .= "$$complete{Name}[$i],";
+				$speciesOrder[1] .= "$$complete{Specie}[$i],";
+			} elsif ("$$complete{Database}[$i]" eq "mirgenedb"){
+				$index_mirgenedb = $i;
+				$databasesOrder[2] .= "$$complete{Database}[$i],";
+				$namesOrder[2] .= "$$complete{Name}[$i],";
+				$speciesOrder[2] .= "$$complete{Specie}[$i],";
+			}	
+		}
+	}
+	my $final_databases = clean_array(\@databasesOrder);
+	my $final_names = clean_array(\@namesOrder);
+	my $final_order = clean_array(\@speciesOrder);
+	#Name Databasemirbase DatabaseRFAM DatabaseMirgeneDB ... SpeciesMirgeneDB
+	$final_databases = delete_redundant_fields($final_databases);
+	$final_names = delete_redundant_fields($final_names);
+	$final_order = delete_redundant_fields($final_order);
+	$databases =  join "\t", @$final_databases;
+	$names = join "\t", @$final_names;
+	$species = join "\t", @$final_order;
+	print "$acc\t$databases\t$names\t$species\n";
+	return;
+}
+
+sub clean_array {
+	my $array = shift;
+	foreach my $ln (@$array){
+		if ($ln =~ /^NA\,$/){
+			$ln =~ s/^(NA)(,)$/$1/g;	
+		} else {
+			$ln =~ s/^(NA\,)(.*)(\,)$/$2/g;
+		}
+	}
+	return $array;
+}
+
+sub delete_redundant_fields {
+	my $array = shift;
+	foreach my $ln (@$array){
+		my @temp = split /\,/, $ln;
+		my @unique = do { my %seen; grep { !$seen{$_}++ } @temp };
+		$ln = join ",", @unique;
+	}
+	return $array;
 }
 
 sub get_index_array_match {
@@ -226,30 +303,5 @@ sub count_data {
 	my $complete_families = 0;
 	return;	
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 exit;

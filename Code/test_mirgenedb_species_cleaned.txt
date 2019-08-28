@@ -1,0 +1,45 @@
+Human (Homo sapiens)    Hsa
+Rhesus monkey (Macaca mulatta)  Mml
+House mouse (Mus musculus)  Mmu
+Norway rat (Rattus norvegicus) Rno
+Guinea pig (Cavia porcellus) Cpo
+Rabbit (Oryctolagus cuniculus) Ocu
+Dog (Canis familiaris) Cfa
+Cow (Bos taurus) Bta
+Nine-banded armadillo (Dasypus novemcinctus) Dno
+Lesser hedgehog tenrec (Echinops telfairi) Ete
+Tasmanian devil (Sarcophilus harrissii) Sha
+Gray short-tailed opossum (Monodelphis domestica) Mdo
+Platypus (Ornithorhynchus anatinus) Oan
+Chicken (Gallus gallus) Gga
+Rock pigeon (Columba livia) Cli
+Zebra finch (Taeniopygia guttata) Tgu
+American alligator (Alligator mississippiensis) Ami
+Western painted turtle (Chrysemys picta bellii) Cpi
+Green anole lizard (Anolis carolinensis) Aca
+Tropical clawed frog (Xenopus tropicalis) Xtr
+Zebrafish (Danio rerio) Dre
+Catshark (Scyliorhinus torazame) Sto
+Sea Squirt (Ciona intestinalis) Cin
+Florida lancelet (Branchiostoma floridae) Bfl
+Saccoglossus (Saccoglossus kowalevskii) Sko
+Ptychodera (Ptychodera flava) Pfl
+Purple sea urchin (Strongylocentrotus purpuratus) Spu
+Bat starfish (Patiria miniata) Pmi
+Fruit fly (Drosophila melanogaster) Dme
+Fruit fly (Drosophila ananassae) Dan
+Fruit fly (Drosophila mojavensis) Dmo
+Yellow fever mosquito (Aedes aegypti) Aae
+Longwing butterfly (Heliconius melpomene) Hme
+Red flour beetle (Tribolium castaneum)  Tca
+Cockroach (Blattella germanica) Bge
+Common water flea (Daphnia pulex) Dpu
+tick (Ixodes sp) Isc
+Roundworm (Caenorhabditis elegans) Cel
+Roundworm (Caenorhabditis briggsae) Cbr
+Large roundworm (Ascaris suum) Asu
+Polychaete worm (Capitella teleta) Cte
+Common brandling worm (Eisenia fetida) Efe
+Owl limpet (Lottia gigantea) Lgi
+Pacific oyster (Crassostrea gigas) Cgi
+Lingula (Lingula anatina) Lan
